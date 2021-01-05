@@ -11,6 +11,8 @@ import {
 } from '@slippi/slippi-js';
 import OBSManager from './OBSManager';
 
+const NETWORK_MESSAGE = Buffer.from("HELO\0");
+
 export default class SlpFileWriter extends EventEmitter {
   constructor(settings) {
     super();
@@ -27,6 +29,7 @@ export default class SlpFileWriter extends EventEmitter {
     });
     this.isRelaying = settings.isRelaying;
     this.clients = [];
+    this.clientTimers = [];
     this.manageRelay();
     this.setupListeners();
   }
@@ -50,7 +53,9 @@ export default class SlpFileWriter extends EventEmitter {
     if (!this.isRelaying) {
       // If relay has been disabled, clear states
       const clients = this.clients || [];
+      const clientTimers = this.clientTimers || [];
       _.each(clients, client => client.destroy());
+      _.each(clientTimers, timer => clearInterval(timer));
 
       if (this.server) {
         this.server.close();
@@ -58,6 +63,7 @@ export default class SlpFileWriter extends EventEmitter {
 
       this.server = null;
       this.clients = [];
+      this.clientTimers = [];
 
       return;
     }
@@ -73,6 +79,9 @@ export default class SlpFileWriter extends EventEmitter {
       // Only get the full buffer when the client connects for performance
       const buf = this.getFullBuffer();
       socket.write(buf);
+
+      const timer = setInterval(() => { socket.write(NETWORK_MESSAGE) }, 5000);
+      this.clientTimers.push(timer);
 
       this.clients.push(socket);
       socket.on('close', err => {

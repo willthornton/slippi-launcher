@@ -1,5 +1,4 @@
-import util from 'util';
-import { execFile } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
@@ -7,16 +6,22 @@ import crypto from 'crypto';
 import retry from 'async-retry';
 import log from 'electron-log';
 import ini from 'ini';
+import net from 'net';
 import electronSettings from 'electron-settings';
 import { EventEmitter } from 'events';
-import { Frames } from '@slippi/slippi-js';
+import { Frames, Ports } from '@slippi/slippi-js';
 
+import _ from 'lodash';
 import { getDolphinPath } from '../utils/settings';
 import { sudoRemovePath } from '../utils/sudoExec';
 
 const { app } = require('electron').remote;
 
 export default class DolphinManager extends EventEmitter {
+  static server = null;
+
+  static clients = [];
+
   constructor(key, settings = {}) {
     super();
     // The key of this dolphin manager, doesn't really do anything
@@ -28,6 +33,23 @@ export default class DolphinManager extends EventEmitter {
     const commFilePaths = this.genCommFilePaths();
 
     this.outputFilePath = commFilePaths.output;
+
+    this.clientTimers = [];
+    if (!DolphinManager.server) {
+      DolphinManager.server = net.createServer(socket => {
+        socket.setNoDelay().setTimeout(20000);
+  
+        // const timer = setInterval(() => { socket.write(NETWORK_MESSAGE) }, 5000);
+        // this.clientTimers.push(timer);
+  
+        DolphinManager.clients.push(socket);
+        socket.on('close', err => {
+          if (err) console.warn(err);
+          _.remove(DolphinManager.clients, client => socket === client);
+        });
+      });
+      DolphinManager.server.listen(Ports.RELAY_START, '0.0.0.0');
+    }
   }
 
   genCommFilePaths() {
@@ -244,6 +266,7 @@ export default class DolphinManager extends EventEmitter {
     let args = [
       '-i',
       this.outputFilePath,
+      '-co',
     ];
 
     if (this.settings.mode === "mirror") {
@@ -268,12 +291,30 @@ export default class DolphinManager extends EventEmitter {
 
     try {
       this.isRunning = true;
-      const execFilePromise = util.promisify(execFile);
-      await execFilePromise(executablePath, args);
-    } finally {
+      // const execFilePromise = util.promisify(execFile);
+      // await execFilePromise(executablePath, args);
+      const proc = spawn(executablePath, args);
+      proc.on("close", () => {
+        this.removeCommFiles();
+        this.isRunning = false;
+        this.emit('dolphin-closed');
+      });
+      proc.stdout.on("data", (msg) => {
+        const lines = msg.toString().split(os.EOL).filter((line) => !!line);
+        lines.forEach((line) => {
+          const [command, value] = line.split(" ");
+          if (command === "[CURRENT_FRAME]") {
+            const buf = Buffer.alloc(4);
+            buf.writeInt32BE(value);
+            DolphinManager.clients.forEach((client) => client.write(buf));
+          }
+        });
+      })
+    } catch(err) {
       // TODO: This doesn't work right when the main electon app gets
       // TODO: closed first instead of the dolphin instance.
       // TODO: Could cause the temp directory to get cluttered
+      log.error(err)
       this.removeCommFiles();
       this.isRunning = false;
       this.emit('dolphin-closed');

@@ -57,6 +57,8 @@ export class SpectateManager {
     const slpSettings = {
       folderPath: "",
       onFileStateChange: () => { },
+      id: 1,
+      isRelaying: true,
     };
     this.slpFileWriter = new SlpFileWriter(slpSettings);
     this.slpFileWriter.on("new-file", (curFilePath) => {
