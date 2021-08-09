@@ -23,7 +23,7 @@ import React from "react";
 
 import { useAppInitialization, useAppStore } from "@/lib/hooks/useApp";
 import { useConsole } from "@/lib/hooks/useConsole";
-import { useReplays } from "@/lib/hooks/useReplays";
+import { useReplayStore } from "@/lib/hooks/useReplayStore";
 
 import { useAccount } from "./useAccount";
 import { useBroadcastListStore } from "./useBroadcastList";
@@ -89,7 +89,7 @@ export const useAppListeners = () => {
     setBroadcastError(errorMessage);
   }, []);
 
-  const updateProgress = useReplays((store) => store.updateProgress);
+  const updateProgress = useReplayStore((store) => store.setProgress);
   const throttledUpdateProgress = throttle(updateProgress, 50);
   ipc_loadProgressUpdatedEvent.renderer!.useEvent(async (progress) => {
     throttledUpdateProgress(progress);
@@ -152,10 +152,10 @@ export const useAppListeners = () => {
       });
   }, [isoPath, setIsValid, setIsValidating]);
 
-  const clearSelectedFile = useReplays((store) => store.clearSelectedFile);
+  const setSelectedFile = useReplayStore((store) => store.setSelectedFile);
   const { goToReplayStatsPage } = useReplayBrowserNavigation();
   ipc_statsPageRequestedEvent.renderer!.useEvent(async ({ filePath }) => {
-    clearSelectedFile();
+    setSelectedFile(null);
     goToReplayStatsPage(filePath);
   }, []);
 

@@ -2,7 +2,7 @@ import { useHistory } from "react-router-dom";
 import create from "zustand";
 import { combine } from "zustand/middleware";
 
-import { useReplays } from "@/lib/hooks/useReplays";
+import { useReplayStore } from "@/lib/hooks/useReplayStore";
 
 import { replayFileFilter, replayFileSort } from "../replayFileSort";
 import { useReplayFilter } from "./useReplayFilter";
@@ -47,9 +47,9 @@ export const useReplayBrowserNavigation = () => {
 };
 
 export const useReplayBrowserList = () => {
-  const files = useReplays((store) => store.files);
-  const clearSelectedFile = useReplays((store) => store.clearSelectedFile);
-  const selectFile = useReplays((store) => store.selectFile);
+  const files = useReplayStore((store) => store.files);
+  const setSelectedFile = useReplayStore((store) => store.setSelectedFile);
+  const clearSelectedFile = () => setSelectedFile(null);
   const sortDirection = useReplayFilter((store) => store.sortDirection);
   const sortBy = useReplayFilter((store) => store.sortBy);
   const searchText = useReplayFilter((store) => store.searchText);
@@ -58,7 +58,7 @@ export const useReplayBrowserList = () => {
     .filter(replayFileFilter({ searchText, hideShortGames }))
     .sort(replayFileSort(sortBy, sortDirection));
   const numHiddenFiles = files.length - filteredFiles.length;
-  const { index, total } = useReplays((store) => store.selectedFile);
+  const { index, total } = useReplayStore((store) => store.selectedFile);
   const { goToReplayStatsPage } = useReplayBrowserNavigation();
 
   const setSelectedItem = (index: number | null) => {
@@ -67,7 +67,7 @@ export const useReplayBrowserList = () => {
       return;
     }
     const file = filteredFiles[index];
-    selectFile(file, index, filteredFiles.length);
+    setSelectedFile(file, index, filteredFiles.length);
     goToReplayStatsPage(file.fullPath);
   };
 

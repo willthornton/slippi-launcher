@@ -49,3 +49,8 @@ export async function generateSubFolderTree(folder: string, childrenToExpand?: s
 
   return Promise.all(subdirectories);
 }
+
+export const isSubDirectory = (parent: string, dir: string) => {
+  const relative = path.relative(parent, dir);
+  return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+};

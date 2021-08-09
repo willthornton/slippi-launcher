@@ -9,12 +9,9 @@ import SearchIcon from "@material-ui/icons/Search";
 import SyncIcon from "@material-ui/icons/Sync";
 import debounce from "lodash/debounce";
 import React from "react";
-import { useToasts } from "react-toast-notifications";
 
 import { Button, Checkbox, Dropdown } from "@/components/FormInputs";
 import { useReplayFilter } from "@/lib/hooks/useReplayFilter";
-import { useReplays } from "@/lib/hooks/useReplays";
-import { useSettings } from "@/lib/hooks/useSettings";
 import { ReplaySortOption, SortDirection } from "@/lib/replayFileSort";
 
 const Outer = styled.div`
@@ -31,15 +28,12 @@ const ButtonContainer = styled.div`
 `;
 
 export interface FilterToolbarProps {
+  onRefreshClick: () => void;
   disabled?: boolean;
 }
 
 export const FilterToolbar = React.forwardRef<HTMLInputElement, FilterToolbarProps>((props, ref) => {
-  const { disabled } = props;
-  const init = useReplays((store) => store.init);
-  const rootSlpPath = useSettings((store) => store.settings.rootSlpPath);
-  const extraSlpPaths = useSettings((store) => store.settings.extraSlpPaths);
-  const currentFolder = useReplays((store) => store.currentFolder);
+  const { onRefreshClick, disabled } = props;
   const storeSearchText = useReplayFilter((store) => store.searchText);
   const setStoreSearchText = useReplayFilter((store) => store.setSearchText);
   const sortBy = useReplayFilter((store) => store.sortBy);
@@ -49,13 +43,6 @@ export const FilterToolbar = React.forwardRef<HTMLInputElement, FilterToolbarPro
   const sortDirection = useReplayFilter((store) => store.sortDirection);
   const setSortDirection = useReplayFilter((store) => store.setSortDirection);
   const [searchText, setSearchText] = React.useState(storeSearchText ?? "");
-  const { addToast } = useToasts();
-
-  const refresh = React.useCallback(() => {
-    init(rootSlpPath, extraSlpPaths, true, currentFolder).catch((err) =>
-      addToast(err.message, { appearance: "error" }),
-    );
-  }, [rootSlpPath, extraSlpPaths, init, currentFolder, addToast]);
 
   const debounceChange = debounce((text: string) => {
     setStoreSearchText(text);
@@ -69,7 +56,7 @@ export const FilterToolbar = React.forwardRef<HTMLInputElement, FilterToolbarPro
   return (
     <Outer>
       <ButtonContainer>
-        <Button onClick={refresh} disabled={disabled} startIcon={<SyncIcon />}>
+        <Button onClick={onRefreshClick} disabled={disabled} startIcon={<SyncIcon />}>
           Refresh
         </Button>
         <Dropdown

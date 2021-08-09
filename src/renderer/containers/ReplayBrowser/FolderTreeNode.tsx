@@ -9,39 +9,31 @@ import KeyboardArrowUpIcon from "@material-ui/icons/KeyboardArrowUp";
 import { FolderResult } from "@replays/types";
 import { colors } from "common/colors";
 import React from "react";
-import { useToasts } from "react-toast-notifications";
 
-import { useReplays } from "@/lib/hooks/useReplays";
+import { useReplayStore } from "@/lib/hooks/useReplayStore";
 
 export interface FolderTreeNodeProps extends FolderResult {
   nestLevel?: number;
+  onClick: (folder: string) => void;
 }
 
 export const FolderTreeNode: React.FC<FolderTreeNodeProps> = ({
   nestLevel = 0,
+  onClick,
   name,
   subdirectories,
   fullPath,
   collapsed,
 }) => {
-  const loadDirectoryList = useReplays((store) => store.loadDirectoryList);
-  const loadFolder = useReplays((store) => store.loadFolder);
-  const toggleFolder = useReplays((store) => store.toggleFolder);
-  const currentFolder = useReplays((store) => store.currentFolder);
-  const { addToast } = useToasts();
+  const toggleFolder = useReplayStore((store) => store.toggleFolder);
+  const currentFolder = useReplayStore((store) => store.currentFolder);
   const hasChildren = subdirectories.length > 0;
-  const onClick = () => {
-    console.log(`loading directory: ${name}`);
-    Promise.all([loadDirectoryList(fullPath), loadFolder(fullPath)]).catch((err) =>
-      addToast(err.message, { appearance: "error" }),
-    );
-  };
   const isSelected = currentFolder === fullPath;
   const labelColor = isSelected ? colors.grayDark : "rgba(255, 255, 255, 0.5)";
   return (
     <div>
       <ListItem
-        onClick={onClick}
+        onClick={() => onClick(fullPath)}
         button={true}
         style={{
           backgroundColor: isSelected ? colors.greenPrimary : undefined,
@@ -58,7 +50,7 @@ export const FolderTreeNode: React.FC<FolderTreeNodeProps> = ({
               e.preventDefault();
               e.stopPropagation();
               if (!hasChildren) {
-                void onClick();
+                void onClick(fullPath);
               } else {
                 toggleFolder(fullPath);
               }
@@ -88,7 +80,7 @@ export const FolderTreeNode: React.FC<FolderTreeNodeProps> = ({
       {subdirectories.length === 0 || collapsed ? null : (
         <List dense={true} style={{ padding: 0 }}>
           {subdirectories.map((f) => (
-            <FolderTreeNode nestLevel={nestLevel + 1} key={f.fullPath} {...f} />
+            <FolderTreeNode nestLevel={nestLevel + 1} key={f.fullPath} {...f} onClick={() => onClick(f.fullPath)} />
           ))}
         </List>
       )}

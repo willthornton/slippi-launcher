@@ -5,7 +5,8 @@ import { useToasts } from "react-toast-notifications";
 
 import { usePlayFiles } from "@/lib/hooks/usePlayFiles";
 import { useReplayBrowserList, useReplayBrowserNavigation } from "@/lib/hooks/useReplayBrowserList";
-import { useReplays } from "@/lib/hooks/useReplays";
+import { useReplayStore } from "@/lib/hooks/useReplayStore";
+import { useSettings } from "@/lib/hooks/useSettings";
 
 import { ReplayFileStats } from "../ReplayFileStats";
 import { ReplayBrowser } from "./ReplayBrowser";
@@ -15,10 +16,14 @@ export const ReplayBrowserPage: React.FC = () => {
   const { path } = useRouteMatch();
   const history = useHistory();
 
+  const rootSlpPath = useSettings((store) => store.settings.rootSlpPath);
+  const spectatorSlpPath = useSettings((store) => store.settings.spectateSlpPath);
+  const extraSlpPaths = useSettings((store) => store.settings.extraSlpPaths);
+
   return (
     <Switch>
       <Route path={`${path}/list`}>
-        <ReplayBrowser />
+        <ReplayBrowser replayPaths={[...new Set([rootSlpPath, spectatorSlpPath, ...extraSlpPaths])]} />
       </Route>
       <Route path={`${path}/:filePath`}>
         <ChildPage goBack={() => history.push(path)} parent={path} />
@@ -32,7 +37,7 @@ export const ReplayBrowserPage: React.FC = () => {
 
 const ChildPage: React.FC<{ parent: string; goBack: () => void }> = () => {
   const { filePath } = useParams<Record<string, any>>();
-  const selectedFile = useReplays((store) => store.selectedFile);
+  const selectedFile = useReplayStore((store) => store.selectedFile);
   const decodedFilePath = decodeURIComponent(filePath);
   const playFiles = usePlayFiles();
   const nav = useReplayBrowserList();

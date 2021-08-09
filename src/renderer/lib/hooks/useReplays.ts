@@ -1,130 +1,56 @@
 import { ipc_loadReplayFolder } from "@replays/ipc";
-import { FileLoadResult, FileResult, FolderResult, Progress } from "@replays/types";
+import { FileLoadResult, FolderResult } from "@replays/types";
 import { produce } from "immer";
 import path from "path";
 import { useState } from "react";
-import create from "zustand";
 
-import { useSettings } from "@/lib/hooks/useSettings";
-
-import { findChild, generateSubFolderTree } from "../folderTree";
+import { findChild, generateSubFolderTree, isSubDirectory } from "../folderTree";
 import { useMousetrap } from "./useMousetrap";
 import { useReplayBrowserList } from "./useReplayBrowserList";
+import { useReplayStore } from "./useReplayStore";
 
-type StoreState = {
-  loading: boolean;
-  progress: Progress | null;
-  files: FileResult[];
-  netplaySlpFolder: FolderResult | null;
-  extraFolders: FolderResult[];
-  currentRoot: string | null;
-  currentFolder: string;
-  fileErrorCount: number;
-  scrollRowItem: number;
-  selectedFiles: string[];
-  selectedFile: {
-    index: number | null;
-    total: number | null;
-    fileResult: FileResult | null;
+export const useReplays = (replayPaths: string[]) => {
+  const currentFolder = useReplayStore((store) => store.currentFolder);
+  const loading = useReplayStore((store) => store.loading);
+  const replayFolders = useReplayStore((store) => store.replayFolders);
+  const setReplayFolders = useReplayStore((store) => store.setReplayFolders);
+  const setScrollRowItem = useReplayStore((store) => store.setScrollRowItem);
+  const setFiles = useReplayStore((store) => store.setFiles);
+  const setFileErrorCount = useReplayStore((store) => store.setFileErrorCount);
+  const setProgress = useReplayStore((store) => store.setProgress);
+  const setLoading = useReplayStore((store) => store.setLoading);
+
+  const init = () => {
+    const newReplayFolders: FolderResult[] = replayPaths.map((folder) => generateFolderResult(folder));
+    setReplayFolders(newReplayFolders);
   };
-};
 
-type StoreReducers = {
-  init: (rootFolder: string, extraFolders: string[], forceReload?: boolean, currentFolder?: string) => Promise<void>;
-  selectFile: (file: FileResult, index?: number | null, total?: number | null) => void;
-  clearSelectedFile: () => void;
-  removeFile: (filePath: string) => void;
-  loadDirectoryList: (folder: string) => Promise<void>;
-  loadFolder: (childPath?: string, forceReload?: boolean) => Promise<void>;
-  toggleFolder: (fullPath: string) => void;
-  setScrollRowItem: (offset: number) => void;
-  updateProgress: (progress: Progress | null) => void;
-  setSelectedFiles: (filePaths: string[]) => void;
-};
-
-const initialState: StoreState = {
-  loading: false,
-  progress: null,
-  files: [],
-  netplaySlpFolder: null,
-  extraFolders: [],
-  currentRoot: null,
-  currentFolder: useSettings.getState().settings.rootSlpPath,
-  fileErrorCount: 0,
-  scrollRowItem: 0,
-  selectedFiles: [],
-  selectedFile: {
-    index: null,
-    total: null,
-    fileResult: null,
-  },
-};
-
-export const useReplays = create<StoreState & StoreReducers>((set, get) => ({
-  // Set the initial state
-  ...initialState,
-
-  init: async (rootFolder, extraFolders, forceReload, currentFolder) => {
-    const { currentRoot, loadFolder, loadDirectoryList } = get();
-    if (currentRoot === rootFolder && !forceReload) {
+  const loadDirectoryList = async (childFolder: string, loadSubDirs = false) => {
+    const parentFolderIndex = replayPaths.findIndex(
+      (parent) => parent === childFolder || isSubDirectory(parent, childFolder),
+    );
+    if (parentFolderIndex === -1) {
       return;
     }
 
-    set({
-      currentRoot: rootFolder,
-      netplaySlpFolder: {
-        name: path.basename(rootFolder),
-        fullPath: rootFolder,
-        subdirectories: [],
-        collapsed: false,
-      },
-      extraFolders: extraFolders.filter(Boolean).map(
-        (folder) =>
-          ({
-            name: path.basename(folder),
-            fullPath: folder,
-            subdirectories: [],
-            collapsed: false,
-          } as FolderResult),
-      ),
+    const currentTree = replayFolders[parentFolderIndex];
+    const newReplayFolder = await produce(currentTree, async (draft: FolderResult) => {
+      const pathToLoad = childFolder;
+      const child = findChild(draft, pathToLoad) ?? draft;
+      child.collapsed = !loadSubDirs;
+      const childPaths = path.relative(child.fullPath, pathToLoad);
+      const childrenToExpand = childPaths ? childPaths.split(path.sep) : [];
+      if (loadSubDirs && child && child.subdirectories.length === 0) {
+        child.subdirectories = await generateSubFolderTree(child.fullPath, childrenToExpand);
+      }
     });
-
-    await Promise.all([loadDirectoryList(currentFolder ?? rootFolder), loadFolder(currentFolder ?? rootFolder, true)]);
-  },
-
-  selectFile: (file, index = null, total = null) => {
-    set({
-      selectedFile: { fileResult: file, index, total },
+    const newReplayFolders = produce(replayFolders, (draft) => {
+      draft[parentFolderIndex] = newReplayFolder;
     });
-  },
+    setReplayFolders(newReplayFolders);
+  };
 
-  clearSelectedFile: () => {
-    set({
-      selectedFile: {
-        fileResult: null,
-        index: null,
-        total: null,
-      },
-    });
-  },
-
-  removeFile: (filePath: string) => {
-    set((state) =>
-      produce(state, (draft) => {
-        const index = draft.files.findIndex((f) => f.fullPath === filePath);
-        // Modify the array in place
-        draft.files.splice(index, 1);
-      }),
-    );
-  },
-
-  updateProgress: (progress: { current: number; total: number } | null) => {
-    set({ progress });
-  },
-
-  loadFolder: async (childPath, forceReload) => {
-    const { currentFolder, loading } = get();
-
+  const loadFolder = async (childPath: string, forceReload?: boolean) => {
     if (loading) {
       console.warn("A folder is already loading! Please wait for it to finish first.");
       return;
@@ -136,87 +62,22 @@ export const useReplays = create<StoreState & StoreReducers>((set, get) => ({
       return;
     }
 
-    set({ currentFolder: folderToLoad });
-
-    set({ loading: true, progress: null });
+    setLoading(true);
+    setProgress(null);
     try {
       const result = await handleReplayFolderLoading(folderToLoad);
-      set({
-        scrollRowItem: 0,
-        files: result.files,
-        loading: false,
-        fileErrorCount: result.fileErrorCount,
-      });
+      setFiles(result.files);
+      setScrollRowItem(0);
+      setFileErrorCount(result.fileErrorCount);
     } catch (err) {
-      set({ loading: false, progress: null });
+      setProgress(null);
+    } finally {
+      setLoading(false);
     }
-  },
+  };
 
-  toggleFolder: (folder) => {
-    set((state) =>
-      produce(state, (draft) => {
-        const currentTree = draft.netplaySlpFolder;
-        if (currentTree) {
-          const child = findChild(currentTree, folder);
-          if (child) {
-            child.collapsed = !child.collapsed;
-          }
-        }
-      }),
-    );
-  },
-
-  loadDirectoryList: async (folder?: string) => {
-    const { currentRoot, netplaySlpFolder: folders, extraFolders } = get();
-    const rootSlpPath = useSettings.getState().settings.rootSlpPath;
-
-    let currentTree = folders;
-    if (currentTree === null || currentRoot !== rootSlpPath) {
-      currentTree = {
-        name: path.basename(rootSlpPath),
-        fullPath: rootSlpPath,
-        subdirectories: [],
-        collapsed: false,
-      };
-    }
-
-    const newFolders = await produce(currentTree, async (draft: FolderResult) => {
-      const pathToLoad = folder ?? rootSlpPath;
-      const child = findChild(draft, pathToLoad) ?? draft;
-      const childPaths = path.relative(child.fullPath, pathToLoad);
-      const childrenToExpand = childPaths ? childPaths.split(path.sep) : [];
-      if (child && child.subdirectories.length === 0) {
-        child.subdirectories = await generateSubFolderTree(child.fullPath, childrenToExpand);
-      }
-    });
-
-    const newExtraFolders = await Promise.all(
-      extraFolders.map(async (rootFolder) => {
-        const newFolders = await produce(rootFolder, async (draft: FolderResult) => {
-          const pathToLoad = folder ?? rootSlpPath;
-          const child = findChild(draft, pathToLoad) ?? draft;
-          const childPaths = path.relative(child.fullPath, pathToLoad);
-          const childrenToExpand = childPaths ? childPaths.split(path.sep) : [];
-          if (child && child.subdirectories.length === 0) {
-            child.subdirectories = await generateSubFolderTree(child.fullPath, childrenToExpand);
-          }
-        });
-        return newFolders;
-      }),
-    );
-
-    set({ netplaySlpFolder: newFolders });
-    set({ extraFolders: newExtraFolders });
-  },
-
-  setScrollRowItem: (rowItem) => {
-    set({ scrollRowItem: rowItem });
-  },
-
-  setSelectedFiles: (filePaths: string[]) => {
-    set({ selectedFiles: filePaths });
-  },
-}));
+  return { init, loadFolder, loadDirectoryList };
+};
 
 const handleReplayFolderLoading = async (folderPath: string): Promise<FileLoadResult> => {
   const loadFolderResult = await ipc_loadReplayFolder.renderer!.trigger({ folderPath });
@@ -229,8 +90,8 @@ const handleReplayFolderLoading = async (folderPath: string): Promise<FileLoadRe
 
 export const useReplaySelection = () => {
   const { files } = useReplayBrowserList();
-  const selectedFiles = useReplays((store) => store.selectedFiles);
-  const setSelectedFiles = useReplays((store) => store.setSelectedFiles);
+  const selectedFiles = useReplayStore((store) => store.checkedFiles);
+  const setSelectedFiles = useReplayStore((store) => store.setCheckedFiles);
 
   const [lastClickIndex, setLastClickIndex] = useState<number | null>(null);
   const [shiftHeld, setShiftHeld] = useState(false);
@@ -311,5 +172,14 @@ export const useReplaySelection = () => {
     onFileClick,
     clearSelection,
     selectAll,
+  };
+};
+
+const generateFolderResult = (folder: string, collapsed = true): FolderResult => {
+  return {
+    name: path.basename(folder),
+    fullPath: folder,
+    subdirectories: [],
+    collapsed,
   };
 };

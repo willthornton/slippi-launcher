@@ -22,47 +22,55 @@ import { usePlayFiles } from "@/lib/hooks/usePlayFiles";
 import { useReplayBrowserList, useReplayBrowserNavigation } from "@/lib/hooks/useReplayBrowserList";
 import { useReplayFilter } from "@/lib/hooks/useReplayFilter";
 import { useReplays, useReplaySelection } from "@/lib/hooks/useReplays";
-import { useSettings } from "@/lib/hooks/useSettings";
+import { useReplayStore } from "@/lib/hooks/useReplayStore";
 
 import { FileList } from "./FileList";
 import { FileSelectionToolbar } from "./FileSelectionToolbar";
 import { FilterToolbar } from "./FilterToolbar";
 import { FolderTreeNode } from "./FolderTreeNode";
 
-export const ReplayBrowser: React.FC = () => {
+export const ReplayBrowser: React.FC<{
+  replayPaths: string[];
+}> = ({ replayPaths }) => {
   const searchInputRef = React.createRef<HTMLInputElement>();
-  const scrollRowItem = useReplays((store) => store.scrollRowItem);
-  const setScrollRowItem = useReplays((store) => store.setScrollRowItem);
-  const removeFile = useReplays((store) => store.removeFile);
-  const selectFile = useReplays((store) => store.selectFile);
+  const currentFolder = useReplayStore((store) => store.currentFolder);
+  const setCurrentFolder = useReplayStore((store) => store.setCurrentFolder);
+  const replayFolders = useReplayStore((store) => store.replayFolders);
+  const loading = useReplayStore((store) => store.loading);
+  const scrollRowItem = useReplayStore((store) => store.scrollRowItem);
+  const setScrollRowItem = useReplayStore((store) => store.setScrollRowItem);
+  const removeFile = useReplayStore((store) => store.removeFile);
+  const setSelectedFile = useReplayStore((store) => store.setSelectedFile);
   const playFiles = usePlayFiles();
-  const clearSelectedFile = useReplays((store) => store.clearSelectedFile);
-  const loading = useReplays((store) => store.loading);
-  const currentFolder = useReplays((store) => store.currentFolder);
-  const netplaySlpFolder = useReplays((store) => store.netplaySlpFolder);
-  const extraFolders = useReplays((store) => store.extraFolders);
-  const selectedFiles = useReplays((store) => store.selectedFiles);
+  const selectedFiles = useReplayStore((store) => store.checkedFiles);
   const fileSelection = useReplaySelection();
-  const init = useReplays((store) => store.init);
-  const fileErrorCount = useReplays((store) => store.fileErrorCount);
-  const rootSlpPath = useSettings((store) => store.settings.rootSlpPath);
-  const extraSlpPaths = useSettings((store) => store.settings.extraSlpPaths);
+  const { init, loadDirectoryList, loadFolder } = useReplays(replayPaths);
+  const fileErrorCount = useReplayStore((store) => store.fileErrorCount);
   const { addToast } = useToasts();
 
   const resetFilter = useReplayFilter((store) => store.resetFilter);
   const { files: filteredFiles, hiddenFileCount } = useReplayBrowserList();
   const { goToReplayStatsPage } = useReplayBrowserNavigation();
 
+  const onFolderClick = (folderPath: string, forceReload?: boolean) => {
+    setCurrentFolder(folderPath);
+    void Promise.all([loadDirectoryList(folderPath), loadFolder(folderPath, forceReload)]).catch(console.warn);
+  };
+
   React.useEffect(() => {
-    init(rootSlpPath, extraSlpPaths).catch((err) => addToast(err.message, { appearance: "error" }));
-  }, [rootSlpPath, extraSlpPaths, init, addToast]);
+    console.log("use effect");
+    init();
+    if (replayPaths.length > 0) {
+      onFolderClick(replayPaths[0]);
+    }
+  }, []);
 
   const setSelectedItem = (index: number | null) => {
     if (index === null) {
-      void clearSelectedFile();
+      setSelectedFile(null);
     } else {
       const file = filteredFiles[index];
-      void selectFile(file, index, filteredFiles.length);
+      setSelectedFile(file, index, filteredFiles.length);
       goToReplayStatsPage(file.fullPath);
     }
   };
@@ -91,10 +99,6 @@ export const ReplayBrowser: React.FC = () => {
     addToast(message, { appearance: "success", autoDismiss: true });
   };
 
-  if (netplaySlpFolder === null) {
-    return null;
-  }
-
   return (
     <Outer>
       <div
@@ -114,10 +118,9 @@ export const ReplayBrowser: React.FC = () => {
           leftSide={
             <List dense={true} style={{ flex: 1, padding: 0 }}>
               <div style={{ position: "relative", minHeight: "100%" }}>
-                <FolderTreeNode {...netplaySlpFolder} />
-                {extraFolders.map((folder) => {
-                  return <FolderTreeNode {...folder} key={folder.name} />;
-                })}
+                {replayFolders.map((folder) => (
+                  <FolderTreeNode key={folder.fullPath} {...folder} onClick={onFolderClick} />
+                ))}
                 {loading && (
                   <div
                     style={{
@@ -140,8 +143,16 @@ export const ReplayBrowser: React.FC = () => {
                 flex: 1;
               `}
             >
-              <FilterToolbar disabled={loading} ref={searchInputRef} />
-              {loading ? (
+              <FilterToolbar
+                disabled={loading}
+                ref={searchInputRef}
+                onRefreshClick={() => {
+                  if (currentFolder) {
+                    onFolderClick(currentFolder, true);
+                  }
+                }}
+              />
+              {loading || !currentFolder ? (
                 <LoadingBox />
               ) : filteredFiles.length === 0 ? (
                 <EmptyFolder
@@ -190,7 +201,7 @@ export const ReplayBrowser: React.FC = () => {
         >
           <div>
             <Tooltip title="Reveal location">
-              <IconButton onClick={() => shell.openItem(currentFolder)} size="small">
+              <IconButton onClick={() => currentFolder && shell.openItem(currentFolder)} size="small">
                 <FolderIcon
                   css={css`
                     color: ${colors.purpleLight};
@@ -218,7 +229,7 @@ export const ReplayBrowser: React.FC = () => {
 };
 
 const LoadingBox: React.FC = () => {
-  const progress = useReplays((store) => store.progress);
+  const progress = useReplayStore((store) => store.progress);
   let message = "Loading...";
   if (progress !== null) {
     message += ` ${Math.floor((progress.current / progress.total) * 100)}%`;
