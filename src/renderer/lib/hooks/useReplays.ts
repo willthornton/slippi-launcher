@@ -9,7 +9,7 @@ import { useMousetrap } from "./useMousetrap";
 import { useReplayBrowserList } from "./useReplayBrowserList";
 import { useReplayStore } from "./useReplayStore";
 
-export const useReplays = (replayPaths: string[]) => {
+export const useReplays = (replayPaths: Array<{ folderPath: string; loadSubDirs?: boolean }>) => {
   const currentFolder = useReplayStore((store) => store.currentFolder);
   const loading = useReplayStore((store) => store.loading);
   const replayFolders = useReplayStore((store) => store.replayFolders);
@@ -21,18 +21,19 @@ export const useReplays = (replayPaths: string[]) => {
   const setLoading = useReplayStore((store) => store.setLoading);
 
   const init = () => {
-    const newReplayFolders: FolderResult[] = replayPaths.map((folder) => generateFolderResult(folder));
+    const newReplayFolders: FolderResult[] = replayPaths.map(({ folderPath }) => generateFolderResult(folderPath));
     setReplayFolders(newReplayFolders);
   };
 
-  const loadDirectoryList = async (childFolder: string, loadSubDirs = false) => {
+  const loadDirectoryList = async (childFolder: string) => {
     const parentFolderIndex = replayPaths.findIndex(
-      (parent) => parent === childFolder || isSubDirectory(parent, childFolder),
+      ({ folderPath }) => folderPath === childFolder || isSubDirectory(folderPath, childFolder),
     );
     if (parentFolderIndex === -1) {
       return;
     }
 
+    const { loadSubDirs } = replayPaths[parentFolderIndex];
     const currentTree = replayFolders[parentFolderIndex];
     const newReplayFolder = await produce(currentTree, async (draft: FolderResult) => {
       const pathToLoad = childFolder;

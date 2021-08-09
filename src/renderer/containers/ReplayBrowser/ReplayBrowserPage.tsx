@@ -3,6 +3,7 @@ import React from "react";
 import { Redirect, Route, Switch, useHistory, useParams, useRouteMatch } from "react-router-dom";
 import { useToasts } from "react-toast-notifications";
 
+import { isSubDirectory } from "@/lib/folderTree";
 import { usePlayFiles } from "@/lib/hooks/usePlayFiles";
 import { useReplayBrowserList, useReplayBrowserNavigation } from "@/lib/hooks/useReplayBrowserList";
 import { useReplayStore } from "@/lib/hooks/useReplayStore";
@@ -19,11 +20,12 @@ export const ReplayBrowserPage: React.FC = () => {
   const rootSlpPath = useSettings((store) => store.settings.rootSlpPath);
   const spectatorSlpPath = useSettings((store) => store.settings.spectateSlpPath);
   const extraSlpPaths = useSettings((store) => store.settings.extraSlpPaths);
+  const replayPaths = generateReplayBrowserPaths(rootSlpPath, [spectatorSlpPath, ...extraSlpPaths]);
 
   return (
     <Switch>
       <Route path={`${path}/list`}>
-        <ReplayBrowser replayPaths={[...new Set([rootSlpPath, spectatorSlpPath, ...extraSlpPaths])]} />
+        <ReplayBrowser replayPaths={replayPaths} />
       </Route>
       <Route path={`${path}/:filePath`}>
         <ChildPage goBack={() => history.push(path)} parent={path} />
@@ -66,4 +68,14 @@ const ChildPage: React.FC<{ parent: string; goBack: () => void }> = () => {
       onPlay={onPlay}
     />
   );
+};
+
+const generateReplayBrowserPaths = (rootSlpPath: string, extraSlpPaths: string[]) => {
+  const uniquePaths = [rootSlpPath];
+  for (const extraPath of extraSlpPaths) {
+    if (extraPath !== rootSlpPath && !isSubDirectory(rootSlpPath, extraPath)) {
+      uniquePaths.push(extraPath);
+    }
+  }
+  return uniquePaths.map((folderPath, index) => ({ folderPath, loadSubDirs: index === 0 }));
 };

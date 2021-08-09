@@ -30,7 +30,7 @@ import { FilterToolbar } from "./FilterToolbar";
 import { FolderTreeNode } from "./FolderTreeNode";
 
 export const ReplayBrowser: React.FC<{
-  replayPaths: string[];
+  replayPaths: Array<{ folderPath: string; loadSubDirs?: boolean }>;
 }> = ({ replayPaths }) => {
   const searchInputRef = React.createRef<HTMLInputElement>();
   const currentFolder = useReplayStore((store) => store.currentFolder);
@@ -58,10 +58,11 @@ export const ReplayBrowser: React.FC<{
   };
 
   React.useEffect(() => {
-    console.log("use effect");
-    init();
-    if (replayPaths.length > 0) {
-      onFolderClick(replayPaths[0]);
+    if (currentFolder === null) {
+      init();
+      if (replayPaths.length > 0) {
+        onFolderClick(replayPaths[0].folderPath);
+      }
     }
   }, []);
 
