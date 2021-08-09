@@ -39,7 +39,7 @@ export const FolderTreeNode: React.FC<FolderTreeNodeProps> = ({
           backgroundColor: isSelected ? colors.greenPrimary : undefined,
           color: labelColor,
           padding: 0,
-          paddingLeft: nestLevel * 15,
+          paddingLeft: 5 + nestLevel * 15,
         }}
       >
         <ListItemIcon>
