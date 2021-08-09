@@ -21,7 +21,9 @@ export const useReplays = (replayPaths: Array<{ folderPath: string; loadSubDirs?
   const setLoading = useReplayStore((store) => store.setLoading);
 
   const init = () => {
-    const newReplayFolders: FolderResult[] = replayPaths.map(({ folderPath }) => generateFolderResult(folderPath));
+    const newReplayFolders: FolderResult[] = replayPaths.map(({ folderPath, loadSubDirs }) =>
+      generateFolderResult(folderPath, !loadSubDirs),
+    );
     setReplayFolders(newReplayFolders);
   };
 
