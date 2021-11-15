@@ -32,11 +32,11 @@ export class IniFile {
 
     const firstEquals = line.indexOf("=");
     if (firstEquals !== -1) {
-      keyOut = line.substring(0, firstEquals).replace(/\s+/g, "");
+      keyOut = line.substring(0, firstEquals).trim();
       retValueOut = line
         .substring(firstEquals + 1)
-        .replace(/\s+/g, "")
-        .replace(/['"]+/g, "");
+        .trim()
+        .replace(/(^"|"$)/g, ""); // remove quotes at the start or end of the string but not inside
     }
 
     return [keyOut, retValueOut] as const;
@@ -186,9 +186,8 @@ export class IniFile {
       } else {
         section.keysOrder.forEach((kvit) => {
           const value = section.values.get(kvit);
-          out.write(`${kvit}=${value}\n`);
+          out.write(`${kvit} = ${value}\n`);
         });
-        out.write("\n");
       }
     });
 

@@ -51,8 +51,13 @@ export function setupListeners() {
 
   ipcMain.on("getOsInfoSync", (event) => {
     const release = os.release();
-    const name = osName(os.platform(), release);
-    event.returnValue = `${name} (${release})`;
+    try {
+      const name = osName(os.platform(), release);
+      event.returnValue = `${name} (${release})`;
+    } catch (err) {
+      log.error(err);
+      event.returnValue = release;
+    }
   });
 
   ipcMain.on("getAppSettingsSync", (event) => {
@@ -133,7 +138,7 @@ export function setupListeners() {
   });
 
   ipc_installUpdate.main!.handle(async () => {
-    autoUpdater.quitAndInstall(true, true);
+    autoUpdater.quitAndInstall(false, true);
     return { success: true };
   });
   ipc_checkForUpdate.main!.handle(async () => {
