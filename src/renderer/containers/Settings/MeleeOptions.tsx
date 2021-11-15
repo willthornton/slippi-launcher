@@ -1,6 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from "@emotion/react";
 import styled from "@emotion/styled";
+import Button from "@material-ui/core/Button";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Radio from "@material-ui/core/Radio";
@@ -9,9 +10,11 @@ import CheckCircleIcon from "@material-ui/icons/CheckCircle";
 import ErrorIcon from "@material-ui/icons/Error";
 import Help from "@material-ui/icons/Help";
 import { IsoValidity } from "common/types";
+import { shell } from "electron";
 import React from "react";
 
 import { PathInput } from "@/components/PathInput";
+import { useAccount } from "@/lib/hooks/useAccount";
 import { useIsoVerification } from "@/lib/hooks/useIsoVerification";
 import { useIsoPath, useLaunchMeleeOnPlay } from "@/lib/hooks/useSettings";
 
@@ -34,12 +37,30 @@ const renderValidityStatus = (isoValidity: IsoValidity) => {
 export const MeleeOptions: React.FC = () => {
   const verifying = useIsoVerification((state) => state.isValidating);
   const isoValidity = useIsoVerification((state) => state.validity);
+  const user = useAccount((store) => store.user);
   const [isoPath, setIsoPath] = useIsoPath();
   const [launchMeleeOnPlay, setLaunchMelee] = useLaunchMeleeOnPlay();
 
   const onLaunchMeleeChange = async (value: string) => {
     const launchMelee = value === "true";
     await setLaunchMelee(launchMelee);
+  };
+
+  const onConnectPatreonClick = () => {
+    if (!user) {
+      // TODO: Show error
+      return;
+    }
+
+    const redirectUri = "http://localhost:3000/connect/patreon";
+    const clientId = "Ce_RnNCp0gZLJyjdb7IaNxb4ZidG6IpViWrEQ-tKGQPk2erh33B-vN7LJBJl4my1";
+
+    const oauthUrl = new URL("https://www.patreon.com/oauth2/authorize");
+    oauthUrl.searchParams.append("response_type", "code");
+    oauthUrl.searchParams.append("client_id", clientId);
+    oauthUrl.searchParams.append("redirect_uri", redirectUri);
+    oauthUrl.searchParams.append("state", user.uid);
+    void shell.openExternal(oauthUrl.href);
   };
 
   return (
@@ -74,6 +95,14 @@ export const MeleeOptions: React.FC = () => {
           <FormControlLabel value={true} label="Launch Melee" control={<Radio />} />
           <FormControlLabel value={false} label="Launch Dolphin" control={<Radio />} />
         </RadioGroup>
+      </SettingItem>
+      <SettingItem
+        name="Patreon Connect"
+        description="Supports connecting a patreon account to access certain features."
+      >
+        <Button variant="contained" color="secondary" onClick={onConnectPatreonClick}>
+          Connect Patreon
+        </Button>
       </SettingItem>
     </div>
   );
