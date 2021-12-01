@@ -26,17 +26,18 @@ const log = electronLog.scope("DolphinSettings");
 export const DolphinSettings: React.FC<{ dolphinType: DolphinLaunchType }> = ({ dolphinType }) => {
   const [dolphinPath, setDolphinPath] = useDolphinPath(dolphinType);
   const [resetModalOpen, setResetModalOpen] = React.useState(false);
+  const [betaModalOpen, setBetaModalOpen] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
   const [betaDolphin, setBetaDolphin] = useBetaDolphin(dolphinType);
+  const [radioOption, setRadioOption] = React.useState(false);
   const dolphinIsOpen = useDolphinStore((store) =>
     dolphinType === DolphinLaunchType.NETPLAY ? store.netplayDolphinOpen : store.playbackDolphinOpen,
   );
   const { openConfigureDolphin, reinstallDolphin, clearDolphinCache } = useDolphin();
 
-  const onBetaDolphinChange = async (value: string) => {
+  const onBetaDolphinChange = async () => {
     setIsResetting(true);
-    const dolphinVersion = value === "true";
-    await setBetaDolphin(dolphinVersion);
+    await setBetaDolphin(radioOption);
     setIsResetting(false);
   };
 
@@ -148,7 +149,21 @@ export const DolphinSettings: React.FC<{ dolphinType: DolphinLaunchType }> = ({ 
           name={`${dolphinTypeName} Dolphin Release Channel`}
           description="Choose which Slippi Dolphin version to install"
         >
-          <RadioGroup value={betaDolphin} onChange={(_event, value) => onBetaDolphinChange(value)}>
+          <ConfirmationModal
+            open={betaModalOpen}
+            onClose={() => setBetaModalOpen(false)}
+            onSubmit={onBetaDolphinChange}
+            title="Are you sure?"
+          >
+            This will remove all your {dolphinType} dolphin settings.
+          </ConfirmationModal>
+          <RadioGroup
+            value={betaDolphin}
+            onChange={(_event, value) => {
+              setRadioOption(value === "true");
+              setBetaModalOpen(true);
+            }}
+          >
             <FormControlLabel
               value={false}
               label="Stable (Ishiiruka)"
