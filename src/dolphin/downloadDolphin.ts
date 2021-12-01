@@ -1,7 +1,10 @@
+import { settingsManager } from "@settings/settingsManager";
 import AdmZip from "adm-zip";
 import { ChildProcessWithoutNullStreams, spawn, spawnSync } from "child_process";
+import { betaNetplayRepo, betaPlaybackRepo, stableNetplayRepo, stablePlaybackRepo } from "common/constants";
 import { app, BrowserWindow } from "electron";
 import { download } from "electron-dl";
+import electronLog from "electron-log";
 import extractDmg from "extract-dmg";
 import * as fs from "fs-extra";
 import os from "os";
@@ -13,6 +16,8 @@ import { getLatestRelease } from "../main/github";
 import { ipc_dolphinDownloadFinishedEvent, ipc_dolphinDownloadLogReceivedEvent } from "./ipc";
 import { DolphinLaunchType } from "./types";
 import { findDolphinExecutable } from "./util";
+
+const logger = electronLog.scope("downloadDolphin");
 
 function logDownloadInfo(message: string): void {
   void ipc_dolphinDownloadLogReceivedEvent.main!.trigger({ message });
@@ -44,7 +49,7 @@ export async function assertDolphinInstallation(
 
 export async function downloadAndInstallDolphin(
   type: DolphinLaunchType,
-  log: (message: string) => void,
+  log: (message: string) => void = logger.info,
   cleanInstall = false,
 ): Promise<void> {
   const downloadedAsset = await downloadLatestDolphin(type, log);
@@ -87,11 +92,25 @@ async function getLatestDolphinAsset(type: DolphinLaunchType): Promise<any> {
 
 async function getLatestReleaseData(type: DolphinLaunchType): Promise<any> {
   const owner = "project-slippi";
-  let repo = "Ishiiruka";
-  if (type === DolphinLaunchType.PLAYBACK) {
-    repo += "-Playback";
-  }
+  const repo = await getRepoName(type);
   return getLatestRelease(owner, repo);
+}
+
+async function getRepoName(type: DolphinLaunchType): Promise<string> {
+  switch (type) {
+    case DolphinLaunchType.NETPLAY: {
+      if (settingsManager.get().settings.betaNetplay) {
+        return betaNetplayRepo;
+      }
+      return stableNetplayRepo;
+    }
+    case DolphinLaunchType.PLAYBACK: {
+      if (settingsManager.get().settings.betaPlayback) {
+        return betaPlaybackRepo;
+      }
+      return stablePlaybackRepo;
+    }
+  }
 }
 
 function matchesPlatform(releaseName: string): boolean {
@@ -109,7 +128,7 @@ function matchesPlatform(releaseName: string): boolean {
 
 async function downloadLatestDolphin(
   type: DolphinLaunchType,
-  log: (status: string) => void = console.log,
+  log: (status: string) => void = logger.info,
 ): Promise<string> {
   const asset = await getLatestDolphinAsset(type);
   const downloadDir = path.join(app.getPath("userData"), "temp");

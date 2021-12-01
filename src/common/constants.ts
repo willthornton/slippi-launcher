@@ -11,3 +11,8 @@ export const socials = {
   discordUrl: "https://slippi.gg/discord",
   patreonUrl: "https://www.patreon.com/fizzi36",
 };
+
+export const stableNetplayRepo = "Ishiiruka";
+export const stablePlaybackRepo = "Ishiiruka-Playback";
+export const betaNetplayRepo = "dolphin";
+export const betaPlaybackRepo = "dolphin-playback";

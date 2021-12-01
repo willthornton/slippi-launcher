@@ -1,3 +1,5 @@
+import { downloadAndInstallDolphin } from "@dolphin/downloadDolphin";
+import { DolphinLaunchType } from "@dolphin/types";
 import { addGamePathToInis } from "@dolphin/util";
 import path from "path";
 
@@ -84,10 +86,12 @@ ipc_setLaunchMeleeOnPlay.main!.handle(async ({ launchMelee }) => {
 
 ipc_setBetaNetplay.main!.handle(async ({ installBeta }) => {
   await settingsManager.setBetaNetplay(installBeta);
+  await downloadAndInstallDolphin(DolphinLaunchType.NETPLAY, undefined, true);
   return { success: true };
 });
 
 ipc_setBetaPlayback.main!.handle(async ({ installBeta }) => {
   await settingsManager.setBetaPlayback(installBeta);
+  await downloadAndInstallDolphin(DolphinLaunchType.PLAYBACK, undefined, true);
   return { success: true };
 });
