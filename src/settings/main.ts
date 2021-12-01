@@ -5,6 +5,8 @@ import {
   ipc_addNewConnection,
   ipc_deleteConnection,
   ipc_editConnection,
+  ipc_setBetaNetplay,
+  ipc_setBetaPlayback,
   ipc_setExtraSlpPaths,
   ipc_setIsoPath,
   ipc_setLaunchMeleeOnPlay,
@@ -77,5 +79,15 @@ ipc_deleteConnection.main!.handle(async ({ id }) => {
 
 ipc_setLaunchMeleeOnPlay.main!.handle(async ({ launchMelee }) => {
   await settingsManager.setLaunchMeleeOnPlay(launchMelee);
+  return { success: true };
+});
+
+ipc_setBetaNetplay.main!.handle(async ({ installBeta }) => {
+  await settingsManager.setBetaNetplay(installBeta);
+  return { success: true };
+});
+
+ipc_setBetaPlayback.main!.handle(async ({ installBeta }) => {
+  await settingsManager.setBetaPlayback(installBeta);
   return { success: true };
 });
