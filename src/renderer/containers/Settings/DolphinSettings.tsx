@@ -3,6 +3,9 @@ import { DolphinLaunchType } from "@dolphin/types";
 import { css, jsx } from "@emotion/react";
 import Button from "@material-ui/core/Button";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Radio from "@material-ui/core/Radio";
+import RadioGroup from "@material-ui/core/RadioGroup";
 import Typography from "@material-ui/core/Typography";
 import { isLinux, isMac } from "common/constants";
 import { remote, shell } from "electron";
@@ -14,7 +17,7 @@ import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { DevGuard } from "@/components/DevGuard";
 import { PathInput } from "@/components/PathInput";
 import { useDolphin, useDolphinStore } from "@/lib/hooks/useDolphin";
-import { useDolphinPath } from "@/lib/hooks/useSettings";
+import { useBetaDolphin, useDolphinPath } from "@/lib/hooks/useSettings";
 
 import { SettingItem } from "./SettingItem";
 
@@ -24,10 +27,16 @@ export const DolphinSettings: React.FC<{ dolphinType: DolphinLaunchType }> = ({ 
   const [dolphinPath, setDolphinPath] = useDolphinPath(dolphinType);
   const [resetModalOpen, setResetModalOpen] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
+  const [betaDolphin, setBetaDolphin] = useBetaDolphin(dolphinType);
   const dolphinIsOpen = useDolphinStore((store) =>
     dolphinType === DolphinLaunchType.NETPLAY ? store.netplayDolphinOpen : store.playbackDolphinOpen,
   );
   const { openConfigureDolphin, reinstallDolphin, clearDolphinCache } = useDolphin();
+
+  const onBetaDolphinChange = async (value: string) => {
+    const dolphinVersion = value === "true";
+    await setBetaDolphin(dolphinVersion);
+  };
 
   const openDolphinDirectoryHandler = async () => {
     shell.openItem(dolphinPath);
@@ -132,6 +141,17 @@ export const DolphinSettings: React.FC<{ dolphinType: DolphinLaunchType }> = ({ 
           </Button>
         </div>
       </SettingItem>
+      {dolphinType === DolphinLaunchType.PLAYBACK && (
+        <SettingItem
+          name={`${dolphinTypeName} Dolphin Release Channel`}
+          description="Choose which Slippi Dolphin version to install"
+        >
+          <RadioGroup value={betaDolphin} onChange={(_event, value) => onBetaDolphinChange(value)}>
+            <FormControlLabel value={false} label="Stable (Ishiiruka)" control={<Radio />} />
+            <FormControlLabel value={true} label="Beta (Mainline)" control={<Radio />} />
+          </RadioGroup>
+        </SettingItem>
+      )}
     </div>
   );
 };

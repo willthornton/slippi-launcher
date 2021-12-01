@@ -1,5 +1,7 @@
 import { DolphinLaunchType } from "@dolphin/types";
 import {
+  ipc_setBetaNetplay,
+  ipc_setBetaPlayback,
   ipc_setExtraSlpPaths,
   ipc_setIsoPath,
   ipc_setLaunchMeleeOnPlay,
@@ -93,7 +95,7 @@ export const useDolphinPath = (dolphinType: DolphinLaunchType) => {
   };
 
   const playbackDolphinPath = useSettings((store) => store.settings.playbackDolphinPath);
-  const setDolphinPath = async (path: string) => {
+  const setPlaybackPath = async (path: string) => {
     const setResult = await ipc_setPlaybackDolphinPath.renderer!.trigger({ path });
     if (!setResult.result) {
       throw new Error("Error setting playback dolphin path");
@@ -105,7 +107,7 @@ export const useDolphinPath = (dolphinType: DolphinLaunchType) => {
       return [netplayDolphinPath, setNetplayPath] as const;
     }
     case DolphinLaunchType.PLAYBACK: {
-      return [playbackDolphinPath, setDolphinPath] as const;
+      return [playbackDolphinPath, setPlaybackPath] as const;
     }
   }
 };
@@ -120,4 +122,31 @@ export const useLaunchMeleeOnPlay = () => {
   };
 
   return [launchMeleeOnPlay, setLaunchMelee] as const;
+};
+
+export const useBetaDolphin = (dolphinType: DolphinLaunchType) => {
+  const betaNetplay = useSettings((state) => state.settings.betaNetplay);
+  const setBetaNetplay = async (installBeta: boolean) => {
+    const setResult = await ipc_setBetaNetplay.renderer!.trigger({ installBeta });
+    if (!setResult.result) {
+      throw new Error("Error setting Netplay Dolphin release channel");
+    }
+  };
+
+  const betaPlayback = useSettings((state) => state.settings.betaPlayback);
+  const setBetaPlayback = async (installBeta: boolean) => {
+    const setResult = await ipc_setBetaPlayback.renderer!.trigger({ installBeta });
+    if (!setResult.result) {
+      throw new Error("Error setting Plaback Dolphin release channel");
+    }
+  };
+
+  switch (dolphinType) {
+    case DolphinLaunchType.NETPLAY: {
+      return [betaNetplay, setBetaNetplay] as const;
+    }
+    case DolphinLaunchType.PLAYBACK: {
+      return [betaPlayback, setBetaPlayback] as const;
+    }
+  }
 };
