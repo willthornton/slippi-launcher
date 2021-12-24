@@ -61,9 +61,10 @@ export class DolphinInstance extends EventEmitter {
       this.process = execFile(this.executablePath, params, {
         // 100MB
         maxBuffer: 1000 * 1000 * 100,
+        env: { SLIPPI_LAUNCHER_SPAWN: "true" },
       });
     } else {
-      this.process = spawn(this.executablePath, params);
+      this.process = spawn(this.executablePath, params, { env: { SLIPPI_LAUNCHER_SPAWN: "true" } });
     }
 
     this.process.on("close", () => {
