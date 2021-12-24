@@ -8,6 +8,7 @@ import path from "path";
 
 import { isMac } from "../common/constants";
 import { fileExists } from "../main/fileExists";
+import { assertDolphinInstallations } from "./downloadDolphin";
 import { ReplayCommunication } from "./types";
 
 const log = electronLog.scope("dolphin/instance");
@@ -67,8 +68,11 @@ export class DolphinInstance extends EventEmitter {
       this.process = spawn(this.executablePath, params, { env: { SLIPPI_LAUNCHER_SPAWN: "true" } });
     }
 
-    this.process.on("close", () => {
+    this.process.on("close", (code: number) => {
       this.emit("close");
+      if (code === 100) {
+        assertDolphinInstallations().catch(log.warn);
+      }
     });
     this.process.on("error", (err) => {
       this.emit("error", err);
