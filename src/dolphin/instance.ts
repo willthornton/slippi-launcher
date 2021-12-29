@@ -70,7 +70,8 @@ export class DolphinInstance extends EventEmitter {
 
     this.process.on("close", (code: number) => {
       this.emit("close");
-      if (code === 100) {
+      log.info(`Dolphin exit code: ${code}`);
+      if (code === 3) {
         assertDolphinInstallations().catch(log.warn);
       }
     });
