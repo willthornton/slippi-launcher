@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [16.x]
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
       - uses: actions/checkout@v1
@@ -49,6 +49,8 @@ jobs:
             ${{ runner.OS }}-build-${{ secrets.CACHE_CONTROL }}
       - name: Install dependencies
         run: |
+          corepack enable
+          yarn set version stable
           yarn install
       - name: Lint
         if: matrix.os == 'ubuntu-latest'
