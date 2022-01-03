@@ -31,6 +31,8 @@ if (isMac && process.arch !== "arm64") {
 const log = electronLog.scope("devMain");
 console.log = log.debug;
 
+console.log(process.env);
+
 // Check for updates
 autoUpdater.logger = log;
 autoUpdater.autoInstallOnAppQuit = false;
