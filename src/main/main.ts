@@ -291,6 +291,12 @@ const playReplayAndShowStats = async (filePath: string) => {
   }
 };
 
+app.on("child-process-gone", (event, details) => {
+  log.error("Uh-oh. We received child-process-gone event. Hang tight for details...");
+  log.error(JSON.stringify({ event }, null, 2));
+  log.error(JSON.stringify({ details }, null, 2));
+});
+
 app
   .whenReady()
   .then(() => {
