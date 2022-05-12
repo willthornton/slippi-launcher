@@ -10,6 +10,13 @@ import { MirrorManager } from "./mirrorManager";
 import type { ConsoleMirrorStatusUpdate, MirrorConfig } from "./types";
 import { MirrorEvent } from "./types";
 
+interface MirrorDetails {
+  playbackId: string;
+  filePath: string;
+  isRealtime: boolean;
+  realTimeLimit: number;
+}
+
 interface Methods {
   dispose: () => Promise<void>;
   connectToConsole(config: MirrorConfig): Promise<void>;
@@ -18,7 +25,12 @@ interface Methods {
   dolphinClosed(playbackId: string): Promise<void>;
   getLogObservable(): Observable<string>;
   getErrorObservable(): Observable<Error | string>;
-  getMirrorDetailsObservable(): Observable<{ playbackId: string; filePath: string; isRealtime: boolean }>;
+  getMirrorDetailsObservable(): Observable<{
+    playbackId: string;
+    filePath: string;
+    isRealtime: boolean;
+    realTimeLimit: number;
+  }>;
   getMirrorStatusObservable(): Observable<{ ip: string; info: Partial<ConsoleMirrorStatusUpdate> }>;
 }
 
@@ -28,7 +40,7 @@ const mirrorManager = new MirrorManager();
 
 const logSubject = new Subject<string>();
 const errorSubject = new Subject<Error | string>();
-const mirrorDetailsSubject = new Subject<{ playbackId: string; filePath: string; isRealtime: boolean }>();
+const mirrorDetailsSubject = new Subject<MirrorDetails>();
 const mirrorStatusSubject = new Subject<{ ip: string; info: Partial<ConsoleMirrorStatusUpdate> }>();
 
 // Forward the events to the renderer
@@ -40,9 +52,12 @@ mirrorManager.on(MirrorEvent.ERROR, async (error: Error | string) => {
   errorSubject.next(error);
 });
 
-mirrorManager.on(MirrorEvent.NEW_FILE, async (playbackId: string, filePath: string, isRealtime: boolean) => {
-  mirrorDetailsSubject.next({ playbackId, filePath, isRealtime });
-});
+mirrorManager.on(
+  MirrorEvent.NEW_FILE,
+  async (playbackId: string, filePath: string, isRealtime: boolean, realTimeLimit: number) => {
+    mirrorDetailsSubject.next({ playbackId, filePath, isRealtime, realTimeLimit });
+  },
+);
 
 mirrorManager.on(
   MirrorEvent.MIRROR_STATUS_CHANGE,
@@ -79,7 +94,7 @@ const methods: WorkerSpec = {
   getErrorObservable(): Observable<Error | string> {
     return Observable.from(errorSubject);
   },
-  getMirrorDetailsObservable(): Observable<{ playbackId: string; filePath: string; isRealtime: boolean }> {
+  getMirrorDetailsObservable(): Observable<MirrorDetails> {
     return Observable.from(mirrorDetailsSubject);
   },
   getMirrorStatusObservable(): Observable<{ ip: string; info: Partial<ConsoleMirrorStatusUpdate> }> {

@@ -17,6 +17,7 @@ export interface MirrorConfig {
   port: number;
   folderPath: string;
   isRealtime: boolean;
+  realTimeLimit: number;
   enableRelay: boolean;
   autoSwitcherSettings?: AutoSwitcherSettings;
   useNicknameFolders: boolean;

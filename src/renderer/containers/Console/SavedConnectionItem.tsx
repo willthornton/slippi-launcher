@@ -57,6 +57,7 @@ export const SavedConnectionItem: React.FC<SavedConnectionItemProps> = ({
       port: conn.port ?? Ports.DEFAULT,
       folderPath: conn.folderPath,
       isRealtime: conn.isRealtime,
+      realTimeLimit: conn.realTimeLimit ?? 2,
       enableRelay: conn.enableRelay,
       useNicknameFolders: conn.useNicknameFolders,
     };

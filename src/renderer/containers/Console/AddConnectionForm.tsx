@@ -28,6 +28,7 @@ type FormValues = {
   obsPassword?: string;
   enableRelay: boolean;
   useNicknameFolders: boolean;
+  realTimeLimit: number;
 };
 
 export interface AddConnectionFormProps {
@@ -245,6 +246,36 @@ export const AddConnectionForm: React.FC<AddConnectionFormProps> = ({ defaultVal
                   />
                 )}
                 rules={{ validate: (val) => !isNaN(val) || "Invalid port number" }}
+              />
+            </section>
+            <section>
+              <SettingDescription label="Real Time Limit">
+                The number of frames Dolphin can fall behind before trying to catch up. Only change this if you know
+                what you're doing. If unsure, leave it at 2.
+              </SettingDescription>
+              <Controller
+                name="realTimeLimit"
+                control={control}
+                render={({ field: { onChange, value }, fieldState: { error } }) => (
+                  <TextField
+                    css={css`
+                      input::-webkit-outer-spin-button,
+                      input::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                      }
+                    `}
+                    label="Real Time Limit"
+                    required={true}
+                    value={isNaN(value) ? "" : value.toString()}
+                    onChange={(e) => onChange(parseInt(e.target.value))}
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                    type="number"
+                    disabled={disabled}
+                  />
+                )}
+                rules={{ validate: (val) => !isNaN(val) || "Not a number" }}
               />
             </section>
           </Collapse>

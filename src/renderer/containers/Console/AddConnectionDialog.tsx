@@ -41,6 +41,7 @@ export const AddConnectionDialog: React.FC<AddConnectionDialogProps> = ({
       isRealtime: false,
       folderPath: spectateFolder,
       port: Ports.DEFAULT,
+      realTimeLimit: 2,
       enableRelay: false,
       enableAutoSwitcher: false,
       useNicknameFolders: true,

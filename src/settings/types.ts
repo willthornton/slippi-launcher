@@ -11,6 +11,7 @@ export interface StoredConnection {
   obsPassword?: string;
   enableRelay: boolean;
   useNicknameFolders: boolean;
+  realTimeLimit?: number;
 }
 
 export type AppSettings = {
