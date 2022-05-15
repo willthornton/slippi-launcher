@@ -123,9 +123,11 @@ export class MirrorManager extends EventEmitter {
 
       connection.on(ConnectionEvent.DATA, (data: Buffer) => {
         fileWriter.write(data);
-        if (relay) {
-          relay.write(data);
-        }
+        relay?.write(data).catch((err) => {
+          if (err) {
+            this.emit(MirrorEvent.ERROR, `Failed to write to relay client: ${err}`);
+          }
+        });
       });
     });
     this.emit(MirrorEvent.LOG, config.port);

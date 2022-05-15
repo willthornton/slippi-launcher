@@ -48,7 +48,7 @@ export class ConsoleRelay extends EventEmitter {
     this.server = null;
   }
 
-  public write(newData: Buffer) {
+  public async write(newData: Buffer) {
     this.dataBuffer.buffersToConcat.push(newData);
     if (this.clients) {
       this.clients.forEach((client) => {
