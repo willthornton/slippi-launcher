@@ -150,25 +150,21 @@ export class MirrorManager extends EventEmitter {
           const frame = (payload as PostFrameUpdateType).frame;
           // Only show OBS source in the later portion of the game loading stage
           if (frame !== null && frame >= -60) {
-            if (autoSwitcher) {
-              autoSwitcher.handleStatusOutput();
-            }
+            autoSwitcher?.handleStatusOutput();
           }
           break;
         }
         case Command.GAME_END: {
           if ((payload as GameEndType).gameEndMethod !== 7) {
-            if (autoSwitcher) {
-              autoSwitcher.handleStatusOutput(700); // 700ms is about enough time for GAME! to stop shaking
+            autoSwitcher?.handleStatusOutput(700); // 700ms is about enough time for GAME! to stop shaking
+          }
+
+          relay?.clearBuffer().catch((err) => {
+            if (err) {
+              this.emit(MirrorEvent.ERROR, err);
             }
-          }
-          if (relay) {
-            relay.clearBuffer().catch((err) => {
-              if (err) {
-                this.emit(MirrorEvent.ERROR, err);
-              }
-            }); // clear buffer after each game to avoid concating a gigantic array
-          }
+          }); // clear buffer after each game to avoid concating a gigantic array
+
           break;
         }
       }
@@ -194,12 +190,9 @@ export class MirrorManager extends EventEmitter {
     }
 
     details.connection.disconnect();
-    if (details.autoSwitcher) {
-      details.autoSwitcher.disconnect();
-    }
-    if (details.relay) {
-      details.relay.stopRelay();
-    }
+    details.autoSwitcher?.disconnect();
+    details.relay?.stopRelay();
+
     delete this.mirrors[ip];
 
     // FIXME: Not sure why the disconnected status update isn't working
@@ -224,10 +217,7 @@ export class MirrorManager extends EventEmitter {
     }
 
     details.isMirroring = true;
-    if (details.autoSwitcher) {
-      this.emit(MirrorEvent.LOG, "Connecting to OBS");
-      await details.autoSwitcher.connect();
-    }
+    await details.autoSwitcher?.connect();
 
     const currentFile = details.fileWriter.getCurrentFilename() || "";
     await this._playFile(currentFile, ip);
@@ -263,9 +253,8 @@ export class MirrorManager extends EventEmitter {
     }
 
     details.isMirroring = false;
-    if (details.autoSwitcher) {
-      details.autoSwitcher.disconnect();
-    }
+
+    details.autoSwitcher?.disconnect();
 
     this.emit(MirrorEvent.MIRROR_STATUS_CHANGE, {
       ip: details.ipAddress,

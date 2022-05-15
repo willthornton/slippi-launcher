@@ -42,23 +42,20 @@ export class ConsoleRelay extends EventEmitter {
   public stopRelay() {
     this.clients.forEach((client) => client.destroy());
     this.clients = [];
-    if (this.server !== null) {
-      this.server.close();
-    }
+
+    this.server?.close();
     this.server = null;
   }
 
   public async write(newData: Buffer) {
     this.dataBuffer.buffersToConcat.push(newData);
-    if (this.clients) {
-      this.clients.forEach((client) => {
-        client.write(newData, (err) => {
-          if (err) {
-            this.emit(MirrorEvent.ERROR, err);
-          }
-        });
+    this.clients.forEach((client) => {
+      client.write(newData, (err) => {
+        if (err) {
+          this.emit(MirrorEvent.ERROR, err);
+        }
       });
-    }
+    });
   }
 
   public async clearBuffer() {

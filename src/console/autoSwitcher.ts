@@ -50,6 +50,7 @@ export class AutoSwitcher extends EventEmitter {
   };
 
   public async connect() {
+    this.emit(MirrorEvent.LOG, "Connecting to OBS");
     if (this.obsIP && this.obsSourceName) {
       // if you send a password when authentication is disabled, OBS will still connect
       try {
