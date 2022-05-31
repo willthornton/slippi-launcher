@@ -1,5 +1,7 @@
-import { _, makeEndpoint, SuccessPayload } from "../ipc";
-import { AppSettings, StoredConnection } from "./types";
+import type { SuccessPayload } from "utils/ipc";
+import { _, makeEndpoint } from "utils/ipc";
+
+import type { AppSettings, StoredConnection } from "./types";
 
 // Handlers
 
@@ -32,6 +34,12 @@ export const ipc_setPlaybackDolphinPath = makeEndpoint.main(
 export const ipc_setLaunchMeleeOnPlay = makeEndpoint.main(
   "setLaunchMeleeOnPlay",
   <{ launchMelee: boolean }>_,
+  <SuccessPayload>_,
+);
+
+export const ipc_setAutoUpdateLauncher = makeEndpoint.main(
+  "setAutoUpdateLauncher",
+  <{ autoUpdateLauncher: boolean }>_,
   <SuccessPayload>_,
 );
 

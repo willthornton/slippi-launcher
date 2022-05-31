@@ -1,14 +1,12 @@
-/** @jsx jsx */
-import { css, jsx } from "@emotion/react";
-import Tooltip from "@material-ui/core/Tooltip";
-import { FileResult } from "@replays/types";
-import { ConversionType, PlayerType, StatsType, StockType } from "@slippi/slippi-js";
-import { extractPlayerNames } from "common/matchNames";
-import { convertFrameCountToDurationString } from "common/time";
+import { css } from "@emotion/react";
+import Tooltip from "@mui/material/Tooltip";
+import type { FileResult } from "@replays/types";
+import type { ConversionType, PlayerType, StatsType, StockType } from "@slippi/slippi-js";
 import _ from "lodash";
 import React from "react";
 
-import { useDolphin } from "@/lib/hooks/useDolphin";
+import { extractPlayerNames } from "@/lib/matchNames";
+import { convertFrameCountToDurationString } from "@/lib/time";
 import { getCharacterIcon, toOrdinal } from "@/lib/utils";
 
 import * as T from "./TableStyles";
@@ -20,10 +18,10 @@ export interface PunishTableProps {
   stats: StatsType;
   player: PlayerType;
   opp: PlayerType;
+  onPlay: (options: { path: string; startFrame: number }) => void;
 }
 
-export const PunishTable: React.FC<PunishTableProps> = ({ file, stats, player, opp }) => {
-  const { viewReplays } = useDolphin();
+export const PunishTable: React.FC<PunishTableProps> = ({ file, stats, player, opp, onPlay }) => {
   const names = extractPlayerNames(player.playerIndex, file.settings, file.metadata);
   const playerDisplay = (
     <div style={{ display: "flex", alignItems: "center" }}>
@@ -52,7 +50,7 @@ export const PunishTable: React.FC<PunishTableProps> = ({ file, stats, player, o
     }
 
     const playPunish = () => {
-      viewReplays([{ path: file.fullPath, startFrame: punish.startFrame }]);
+      onPlay({ path: file.fullPath, startFrame: punish.startFrame });
     };
 
     return (

@@ -1,7 +1,8 @@
-import { FileResult } from "@replays/types";
+import type { FileResult } from "@replays/types";
 import { Frames } from "@slippi/slippi-js";
-import { extractAllPlayerNames, namesMatch } from "common/matchNames";
 import compareFunc from "compare-func";
+
+import { extractAllPlayerNames, namesMatch } from "@/lib/matchNames";
 
 // The minimum duration of games when filtering out short games
 const MIN_GAME_DURATION_FRAMES = 30 * 60;
@@ -70,31 +71,33 @@ export interface ReplayFilterOptions {
   hideShortGames: boolean;
 }
 
-export const replayFileFilter = (filterOptions: ReplayFilterOptions): ((file: FileResult) => boolean) => (file) => {
-  if (filterOptions.hideShortGames) {
-    if (file.lastFrame !== null && file.lastFrame <= MIN_GAME_DURATION_FRAMES) {
-      return false;
+export const replayFileFilter =
+  (filterOptions: ReplayFilterOptions): ((file: FileResult) => boolean) =>
+  (file) => {
+    if (filterOptions.hideShortGames) {
+      if (file.lastFrame !== null && file.lastFrame <= MIN_GAME_DURATION_FRAMES) {
+        return false;
+      }
     }
-  }
 
-  // First try to match names
-  const playerNamesMatch = (): boolean => {
-    const matchable = extractAllPlayerNames(file.settings, file.metadata);
-    if (!filterOptions.searchText) {
+    // First try to match names
+    const playerNamesMatch = (): boolean => {
+      const matchable = extractAllPlayerNames(file.settings, file.metadata);
+      if (!filterOptions.searchText) {
+        return true;
+      } else if (matchable.length === 0) {
+        return false;
+      }
+      return namesMatch([filterOptions.searchText], matchable);
+    };
+    if (playerNamesMatch()) {
       return true;
-    } else if (matchable.length === 0) {
-      return false;
     }
-    return namesMatch([filterOptions.searchText], matchable);
+
+    // Match filenames
+    if (file.name.toLowerCase().includes(filterOptions.searchText.toLowerCase())) {
+      return true;
+    }
+
+    return false;
   };
-  if (playerNamesMatch()) {
-    return true;
-  }
-
-  // Match filenames
-  if (file.name.toLowerCase().includes(filterOptions.searchText.toLowerCase())) {
-    return true;
-  }
-
-  return false;
-};

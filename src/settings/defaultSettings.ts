@@ -1,7 +1,7 @@
 import { app } from "electron";
 import path from "path";
 
-import { AppSettings } from "./types";
+import type { AppSettings } from "./types";
 
 function getDefaultRootSlpPath(): string {
   let root = app.getPath("home");
@@ -22,5 +22,6 @@ export const defaultAppSettings: AppSettings = {
     netplayDolphinPath: path.join(app.getPath("userData"), "netplay"),
     playbackDolphinPath: path.join(app.getPath("userData"), "playback"),
     launchMeleeOnPlay: true,
+    autoUpdateLauncher: true,
   },
 };
