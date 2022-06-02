@@ -9,7 +9,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
-import { shell } from "electron";
+// import { shell } from "electron";
 import React from "react";
 
 import { PathInput } from "@/components/PathInput";
@@ -63,7 +63,8 @@ export const MeleeOptions: React.FC = () => {
     oauthUrl.searchParams.append("client_id", clientId);
     oauthUrl.searchParams.append("redirect_uri", redirectUri);
     oauthUrl.searchParams.append("state", user.uid);
-    void shell.openExternal(oauthUrl.href);
+    void window.electron.shell.openPath(oauthUrl.href);
+    // void shell.openExternal(oauthUrl.href);
   };
 
   return (
